@@ -492,4 +492,75 @@
     .hero-gradient-overlay-animated {
         @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent;
     }
+
+    /* Simple motion primitives for a more lively landing page */
+    @keyframes float-soft {
+        0% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+        100% {
+            transform: translateY(0px);
+        }
+    }
+
+    @keyframes fade-in-up-soft {
+        0% {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes subtle-shimmer {
+        0% {
+            opacity: 0.7;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0.7;
+        }
+    }
+
+    .animate-float-soft {
+        animation: float-soft 10s ease-in-out infinite;
+        will-change: transform;
+    }
+
+    .animate-fade-up-soft {
+        animation: fade-in-up-soft 0.6s ease-out both;
+        will-change: transform, opacity;
+    }
+
+    .animate-fade-up-soft-slow {
+        animation: fade-in-up-soft 0.8s ease-out both;
+        will-change: transform, opacity;
+    }
+
+    .animate-shimmer-soft {
+        animation: subtle-shimmer 3s ease-in-out infinite;
+    }
+
+    .animate-delay-1 {
+        animation-delay: 0.05s;
+    }
+
+    .animate-delay-2 {
+        animation-delay: 0.12s;
+    }
+
+    .animate-delay-3 {
+        animation-delay: 0.2s;
+    }
+
+    .animate-delay-4 {
+        animation-delay: 0.3s;
+    }
 }
