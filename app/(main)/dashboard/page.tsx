@@ -135,18 +135,18 @@ const DashboardPage = () => {
               </p>
             )}
 
-            {data?.map((community: any) => (
+            {data?.map((item: any) => (
               <Link
-                key={community.id}
-                href={`/communities/${community.id}`}
+                key={item.community.id}
+                href={`/communities/${item.community.id}`}
               >
                 <Card className="shadow-none hover:bg-muted transition cursor-pointer">
                   <CardHeader>
                     <CardTitle className="text-sm">
-                      {community.name}
+                      {item.community.name}
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      {community.description}
+                      {item.community.description}
                     </CardDescription>
                   </CardHeader>
                 </Card>
