@@ -2,7 +2,7 @@ import { db } from "@/database"
 import { communities, communityMembers, learningGoals } from "@/database/schema"
 import { getOrCreateUserByClerkId } from "@/lib/user-utils"
 
-import { and, eq } from "drizzle-orm"
+import { and, asc, desc, eq, like } from "drizzle-orm"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 
@@ -10,7 +10,6 @@ type Variables = {
   userId: string
 }
 
-import { like, sql } from "drizzle-orm"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod"
 
@@ -106,15 +105,88 @@ const communitesApp = new Hono<{ Variables: Variables }>()
       throw new HTTPException(404, { message: "User not found" })
     }
 
-    const goals = await db.select().from(learningGoals).where(
-      and(
-        eq(learningGoals.communityId, communityId),
-        eq(learningGoals.userId, user.id)
+    const goals = await db
+      .select()
+      .from(learningGoals)
+      .where(
+        and(
+          eq(learningGoals.communityId, communityId),
+          eq(learningGoals.userId, user.id)
+        )
       )
-    )
+      // Incomplete first, newest first within each group
+      .orderBy(asc(learningGoals.isCompleted), desc(learningGoals.createdAt))
 
     return c.json(goals)
   })
+  .post(
+    "/:communityId/goals",
+    zValidator(
+      "json",
+      z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+      })
+    ),
+    async (c) => {
+      const clerkId = c.get("userId")
+      const communityId = c.req.param("communityId")
+      const { title, description } = c.req.valid("json")
+
+      const user = await getOrCreateUserByClerkId(clerkId)
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" })
+      }
+
+      const [newGoal] = await db
+        .insert(learningGoals)
+        .values({
+          userId: user.id,
+          communityId,
+          title,
+          description,
+        })
+        .returning()
+
+      return c.json(newGoal)
+    }
+  )
+  .patch(
+    "/:communityId/goals/:goalId",
+    zValidator(
+      "json",
+      z.object({
+        isCompleted: z.boolean(),
+      })
+    ),
+    async (c) => {
+      const clerkId = c.get("userId")
+      const goalId = c.req.param("goalId")
+      const { isCompleted } = c.req.valid("json")
+
+      const user = await getOrCreateUserByClerkId(clerkId)
+      if (!user) {
+        throw new HTTPException(404, { message: "User not found" })
+      }
+
+      const [updatedGoal] = await db
+        .update(learningGoals)
+        .set({ isCompleted })
+        .where(
+          and(
+            eq(learningGoals.id, goalId),
+            eq(learningGoals.userId, user.id) // Ensure ownership
+          )
+        )
+        .returning()
+
+      if (!updatedGoal) {
+        throw new HTTPException(404, { message: "Goal not found or unauthorized" })
+      }
+
+      return c.json(updatedGoal)
+    }
+  )
 
 
 export { communitesApp };
