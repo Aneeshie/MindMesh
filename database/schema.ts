@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -43,6 +43,7 @@ export const learningGoals = pgTable("learning_goals", {
     .notNull(),
   title: text("title").notNull(),
   description: text("description"),
+  isCompleted: boolean("is_completed").default(false).notNull(),
   tags: jsonb("tags").$type<string[]>().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

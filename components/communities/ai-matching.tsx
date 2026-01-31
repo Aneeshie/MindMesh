@@ -8,18 +8,18 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { Goal } from "@/app/(main)/communities/page"
+import type { CommunityGoal } from "@/hooks/use-community"
 import { Sparkles, Target, Users, Zap, CheckCircle2 } from "lucide-react"
 
 interface AiMatchingProps {
-    goals: Goal[]
+    goals: CommunityGoal[]
 }
 
 export const AiMatching = ({ goals }: AiMatchingProps) => {
     return (
         <div className="grid gap-8 lg:grid-cols-3">
             {/* Main matching card */}
-            <Card className="lg:col-span-2 border-0 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-muted/20 to-muted/40 overflow-hidden relative">
+            <Card className="lg:col-span-2 border-0 shadow-xl shadow-primary/5 bg-linear-to-br from-background via-muted/20 to-muted/40 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
 
                 <CardHeader className="relative pb-2">

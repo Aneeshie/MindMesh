@@ -1,38 +1,25 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AiMatching } from "@/components/communities/ai-matching"
+import { LearningGoalsTab } from "@/components/communities/learning-goals-tab"
 import { useCommunites, useCommunityGoals } from "@/hooks/use-community"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Plus, Hash, Users, BookOpen, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export type Goal = {
-  id: string
-  title: string
-  description: string | null
-}
+import { toast } from "sonner"
 
 const CommunitiesPage = () => {
   const { data, isLoading, error } = useCommunites()
-
-  const [selectedCommunity, setSelectedCommunity] =
-    useState<string | "">("")
+  const [selectedCommunity, setSelectedCommunity] = useState<string | "">("")
 
   const {
     data: goals = [],
     isLoading: isLoadingGoals,
-    error: errorGoals,
+    error: errorGoals
   } = useCommunityGoals(selectedCommunity || "")
 
   useEffect(() => {
@@ -40,10 +27,6 @@ const CommunitiesPage = () => {
       setSelectedCommunity(data[0].community.id)
     }
   }, [data, selectedCommunity])
-
-  const addGoal = () => {
-    console.log("Add goal clicked - pending backend implementation")
-  }
 
   if (isLoading) {
     return (
@@ -78,9 +61,9 @@ const CommunitiesPage = () => {
   )?.community
 
   return (
-    <div className="page-wrapper max-w-7xl mx-auto space-y-8 px-4 sm:px-6">
+    <div className="page-wrapper max-w-7xl mx-auto space-y-6 px-4 sm:px-6">
       {/* Header */}
-      <div className="flex items-end justify-between border-b pb-6">
+      <div className="flex items-end justify-between border-b pb-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Communities
@@ -117,7 +100,7 @@ const CommunitiesPage = () => {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-10 lg:grid-cols-12 items-start">
+        <div className="grid gap-8 lg:grid-cols-12 items-start h-[calc(100vh-12rem)]">
           {/* SIDEBAR */}
           <div
             className="
@@ -171,7 +154,6 @@ const CommunitiesPage = () => {
                       </div>
 
                       <div className="flex-1 min-w-0 truncate">
-                        {/* FIX: min-w-0 */}
                         <div
                           className={cn(
                             "font-medium truncate",
@@ -198,9 +180,9 @@ const CommunitiesPage = () => {
           </div>
 
           {/* CONTENT */}
-          <div className="col-span-12 lg:col-span-9 space-y-8 min-w-0">
+          <div className="col-span-12 lg:col-span-9 flex flex-col h-full space-y-6 min-w-0">
             {/* Mobile selector */}
-            <div className="lg:hidden">
+            <div className="lg:hidden shrink-0">
               <div className="flex overflow-x-auto pb-4 gap-2 scrollbar-hide">
                 {data?.map((item) => (
                   <Button
@@ -222,91 +204,47 @@ const CommunitiesPage = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="flex flex-col gap-3 pb-6 border-b">
-                <h2 className="text-4xl font-extrabold tracking-tight">
-                  {currentCommunity?.name}
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-3xl">
-                  {currentCommunity?.description}
-                </p>
-              </div>
-
-              <Tabs defaultValue="my-goals" className="space-y-8">
-                <TabsList className="bg-transparent p-0 border-b w-full justify-start rounded-none h-auto gap-8">
-                  <TabsTrigger value="my-goals">
-                    <BookOpen className="size-4 mr-2" />
-                    Learning Goals
-                  </TabsTrigger>
-                  <TabsTrigger value="find-study-mate">
-                    <Users className="size-4 mr-2" />
-                    AI Matchmaking
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="my-goals" className="space-y-6 animate-in fade-in-50 duration-300 slide-in-from-left-2 focus-visible:outline-none">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        Your Roadmap
-                        <span className="bg-muted px-2 py-0.5 rounded-full text-xs font-normal text-muted-foreground">{goals.length} goals</span>
-                      </h3>
-                    </div>
-                    <Button onClick={addGoal} className="rounded-full shadow-sm">
-                      <Plus className="size-4 mr-2" />
-                      New Goal
-                    </Button>
-                  </div>
-
-                  {isLoadingGoals ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {[1, 2, 3].map((i) => (
-                        <Card key={i} className="animate-pulse shadow-sm border-none bg-muted/20">
-                          <CardHeader><div className="h-6 w-3/4 bg-muted/50 rounded-md"></div></CardHeader>
-                          <CardContent><div className="h-4 w-full bg-muted/50 rounded-md mb-2"></div><div className="h-4 w-2/3 bg-muted/50 rounded-md"></div></CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : goals.length === 0 ? (
-                    <div className="border-2 border-dashed border-muted rounded-2xl p-12 flex flex-col items-center justify-center text-center bg-muted/5 hover:bg-muted/10 transition-colors">
-                      <div className="bg-background p-4 rounded-full shadow-sm mb-4">
-                        <BookOpen className="size-8 text-primary/60" />
-                      </div>
-                      <h3 className="text-xl font-semibold mb-2">No goals defined yet</h3>
-                      <p className="text-muted-foreground max-w-md mb-6">
-                        Setting clear learning goals boosts your chances of success. Define what you want to achieve in this community.
-                      </p>
-                      <Button onClick={addGoal} variant="outline" className="rounded-full border-primary/20 hover:border-primary/50 text-foreground">
-                        Create First Goal
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {goals.map((goal) => (
-                        <Card key={goal.id} className="group transition-all hover:-translate-y-1 hover:shadow-lg border-muted/60 bg-card">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{goal.title}</CardTitle>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground line-clamp-3 leading-relaxed">{goal.description}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="find-study-mate">
-                  <AiMatching goals={goals} />
-                </TabsContent>
-              </Tabs>
+            <div className="shrink-0 space-y-2 pb-2">
+              <h2 className="text-3xl font-extrabold tracking-tight">
+                {currentCommunity?.name}
+              </h2>
+              <p className="text-lg text-muted-foreground line-clamp-1">
+                {currentCommunity?.description}
+              </p>
             </div>
+
+            <Tabs defaultValue="my-goals" className="flex-1 flex flex-col space-y-6 min-h-0">
+              <TabsList className="bg-transparent p-0 border-b w-full justify-start rounded-none h-auto gap-8 shrink-0">
+                <TabsTrigger value="my-goals">
+                  <BookOpen className="size-4 mr-2" />
+                  Learning Goals
+                </TabsTrigger>
+                <TabsTrigger value="find-study-mate">
+                  <Users className="size-4 mr-2" />
+                  AI Matchmaking
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent
+                value="my-goals"
+                className="flex-1 flex flex-col space-y-4 animate-in fade-in-50 duration-300 slide-in-from-left-2 focus-visible:outline-none min-h-0"
+              >
+                <LearningGoalsTab
+                  communityId={selectedCommunity || ""}
+                  goals={goals}
+                  isLoadingGoals={isLoadingGoals}
+                />
+              </TabsContent>
+
+              <TabsContent value="find-study-mate">
+                <AiMatching goals={goals} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   )
 }
 
