@@ -32,7 +32,7 @@ const useSearchUsers = (query: string) => {
 const useSendRequest = () => {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: async ({ targetUserId, communityId }: { targetUserId: string, communityId: string }) => {
+        mutationFn: async ({ targetUserId, communityId }: { targetUserId: string, communityId?: string }) => {
             const res = await client.api.matches.request.$post({
                 json: { targetUserId, communityId }
             })
@@ -86,14 +86,11 @@ export function UserSearchDialog({ children }: { children: React.ReactNode }) {
     })
 
     const handleInvite = (userId: string) => {
-        if (!communities || communities.length === 0) {
-            toast.error("You need to join a community first!")
-            return
-        }
-        // Default to first community
-        const communityId = communities[0].communityId
+        // If we want to support optionally adding to a community context later, we can restore the selector.
+        // For now, per user request: "need not be in a community".
+        // sending with undefined communityId creates a direct match.
 
-        sendRequest({ targetUserId: userId, communityId }, {
+        sendRequest({ targetUserId: userId, communityId: undefined }, {
             onSuccess: () => {
                 // Optional: Close dialog or keep open to add more?
                 // setOpen(false)
