@@ -4,20 +4,98 @@ import { aiMatchUsers, generateConversationInsight } from "@/lib/ai";
 import { createMatch, createMessage, getActiveMatchesForUser, getMatchById, getMessages, getPendingMatchesForUser, searchUsers, updateMatchStatus } from "@/lib/db-helpers";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/database";
+import { aiMatchUsage } from "@/database/schema";
+import { eq, sql } from "drizzle-orm";
 
 type Variables = {
     userId: string
 }
 
+const getIsPro = async () => {
+    const { has } = await auth()
+
+    // @ts-ignore
+    return !!(has && has({ plan: "pro_plan" }))
+}
 
 export const matchesApp = new Hono<{ Variables: Variables }>().use("/*", authMiddleware)
+    .get("/aiMatch/status", async (c) => {
+        const user = c.get("user")
+        const isPro = await getIsPro()
+        const limit = 2
+        const usageRow = await db.query.aiMatchUsage.findFirst({
+            where: eq(aiMatchUsage.userId, user.id),
+        })
+        const used = usageRow?.tries ?? 0
+
+        return c.json({
+            isPro,
+            limit,
+            used,
+            remaining: isPro ? null : Math.max(0, limit - used),
+        })
+    })
     .post("/:communityId/aiMatch", async (c) => {
         const communityId = c.req.param("communityId")
         const user = c.get('user')
 
+        const isPro = await getIsPro()
+        const limit = 2
+        const usageRow = await db.query.aiMatchUsage.findFirst({
+            where: eq(aiMatchUsage.userId, user.id),
+        })
+        const used = usageRow?.tries ?? 0
+
+        if (!isPro && used >= limit) {
+            return c.json(
+                {
+                    error: "AI matchmaking is limited to 2 tries on the Free plan.",
+                    usage: {
+                        isPro,
+                        limit,
+                        used,
+                        remaining: 0,
+                    },
+                },
+                403
+            )
+        }
+
+        // Count this run for Free users (server-enforced)
+        let updatedUsed = used
+        if (!isPro) {
+            const [updated] = await db
+                .insert(aiMatchUsage)
+                .values({
+                    userId: user.id,
+                    tries: 1,
+                    updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                    target: aiMatchUsage.userId,
+                    set: {
+                        tries: sql`${aiMatchUsage.tries} + 1`,
+                        updatedAt: new Date(),
+                    },
+                })
+                .returning({ tries: aiMatchUsage.tries })
+
+            updatedUsed = updated?.tries ?? used + 1
+        }
+
         const aiMatch = await aiMatchUsers(user, communityId)
 
-        return c.json(aiMatch)
+        return c.json({
+            ...aiMatch,
+            usage: {
+                isPro,
+                limit,
+                used: updatedUsed,
+                remaining: isPro ? null : Math.max(0, limit - updatedUsed),
+            },
+        })
 
     })
     .get("/pending", async (c) => {
@@ -53,9 +131,9 @@ export const matchesApp = new Hono<{ Variables: Variables }>().use("/*", authMid
         // Quick hack: Just pick the first community the CURRENT user is in as the context?
         // Better: The user should probably be in a "Global" community.
         // Let's rely on the frontend to pass one for now.
-        if (!communityId) {
-            return c.json({ error: "Community ID context required for now" }, 400);
-        }
+        // if (!communityId) {
+        //     return c.json({ error: "Community ID context required for now" }, 400);
+        // }
 
         const match = await createMatch(user.id, targetUserId, communityId)
         return c.json(match)

@@ -40,9 +40,10 @@ export const useAcceptMatch = () => {
             }
             return res.json();
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             toast.success("Match accepted!");
-            queryClient.invalidateQueries({ queryKey: ["matches"] });
+            await queryClient.invalidateQueries({ queryKey: ["matches", "pending"] });
+            await queryClient.invalidateQueries({ queryKey: ["matches", "active"] });
         },
         onError: () => {
             toast.error("Failed to accept match");
