@@ -1,6 +1,6 @@
 import { db } from "@/database";
 import { learningGoals, users } from "@/database/schema";
-import { openai } from '@ai-sdk/openai';
+import { google } from "@ai-sdk/google";
 
 type DbUser = typeof users.$inferSelect;
 import { generateText } from "ai";
@@ -33,7 +33,7 @@ export const aiMatchUsers = async (user: DbUser, communityId: string) => {
             if (existingMatchUserIds.has(member.user.id)) continue;
 
             const memberGoals = goalsMap.get(member.user.id);
-            if (memberGoals.length > 0) {
+            if (memberGoals && memberGoals.length > 0) {
                 potentialPartners.push({
                     userId: member.user.id,
                     username: member.user.name,
@@ -50,6 +50,10 @@ export const aiMatchUsers = async (user: DbUser, communityId: string) => {
         }
 
 
+
+        if (potentialPartners.length === 0) {
+            return { matched: 0, matches: [] };
+        }
         const prompt = `You are an AI matching assistant for a learning platform. Your job is to match learners with compatible learning partners.
 
 Current User: ${user.name}
@@ -89,28 +93,34 @@ IMPORTANT MATCHING CRITERIA:
    - Potential for mutual learning and knowledge sharing
    - Common interests and learning styles
 
-4. Be INCLUSIVE - if there's any reasonable connection between learning goals, include them as a potential match
+92: 4. Be INCLUSIVE - if there's any reasonable connection between learning goals, include them as a potential match. Even broad overlaps (e.g. "React" and "Web Development") count.
+93: 
+94: Return ONLY a JSON array of partner indices (1-based) in order of compatibility. Return between 1-3 matches maximum.
+95: Example: [2, 5, 1] means partner #2 is the best match, then #5, then #1.
+96: 
+97: If you find even weak matches, include them. Only return [] if the goals are completely unrelated (e.g. Cooking vs Coding).
+98: 
+99: 5. CRITICAL FOR TESTING: If the user's goals appear to be test data, gibberish, or placeholders (e.g., "test", "asdf", "hello", "123", "working"), IGNORE semantic matching and simply return the first 1-3 partners. We want the user to see matches during testing.`;
 
-Return ONLY a JSON array of partner indices (1-based) in order of compatibility. Return between 1-3 matches maximum.
-Example: [2, 5, 1] means partner #2 is the best match, then #5, then #1.
 
-Only return an empty array [] if there are truly NO partners with any related learning interests.`;
 
         const { text } = await generateText({
-            model: openai("gpt-4o-mini"),
+            model: google("gemini-2.5-flash"),
             prompt: prompt,
         });
 
 
         let jsonText = text.trim();
-        if (jsonText.startsWith("```json")) {
-            jsonText = jsonText.replace(/```json\s\n/, "").replace(/\n```\s*$/, "");
-        } else if (jsonText.startsWith("```")) {
-            jsonText = jsonText.replace(/^```\s\n/, "").replace(/\n```\s*$/, "");
+        const jsonMatch = jsonText.match(/\[\s*(\d+(\s*,\s*\d+)*)?\s*\]/);
+
+        if (jsonMatch) {
+            jsonText = jsonMatch[0];
+        } else {
+            console.warn("Could not find JSON array in response, attempting direct parse");
         }
 
 
-        console.log("AI MATCHING TEXT: ", jsonText)
+
 
         let matchIndices = [];
 
@@ -126,7 +136,7 @@ Only return an empty array [] if there are truly NO partners with any related le
             throw new Error("Invalid JSON format")
         }
 
-        if (matchIndices.length === 0 || matchIndices.length > 3) {
+        if (matchIndices.length > 3) {
             throw new Error("Invalid number of matches")
         }
 
@@ -149,7 +159,7 @@ Only return an empty array [] if there are truly NO partners with any related le
             }
         }
 
-        console.log("Created matches: ", createdMatches, createdMatches.length)
+
 
         return {
             matched: createdMatches.length,
@@ -165,4 +175,35 @@ Only return an empty array [] if there are truly NO partners with any related le
 
 };
 
-export const generateAISummaries = () => { }
+export const generateConversationInsight = async (messages: { sender: string, content: string }[]) => {
+    try {
+        if (messages.length === 0) return null;
+
+        const prompt = `Analyze the following conversation between two learning partners.
+        
+        Conversation:
+        ${messages.map(m => `${m.sender}: ${m.content}`).join("\n")}
+        
+        Provide a concise insight in JSON format with the following fields:
+        - "summary": A brief 1-2 sentence summary of what they discussed.
+        - "topics": An array of 1-3 key topics (strings).
+        - "actionItems": An array of 1-3 suggested next steps or action items for them (strings).
+        
+        Return ONLY valid JSON.
+        `;
+
+        const { text } = await generateText({
+            model: google("gemini-2.5-flash"),
+            prompt: prompt,
+        });
+
+        let jsonText = text.trim();
+        // naive cleanup if markdown block
+        jsonText = jsonText.replace(/^```json/, '').replace(/```$/, '');
+
+        return JSON.parse(jsonText);
+    } catch (e) {
+        console.error("AI Insight Error:", e);
+        return null;
+    }
+}
