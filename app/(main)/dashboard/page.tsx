@@ -14,20 +14,29 @@ import { useCommunites } from '@/hooks/use-community'
 import { useUser } from '@clerk/nextjs'
 import { MessageCircle, UserIcon } from 'lucide-react'
 import Link from 'next/link'
+import { useUserStats } from '@/hooks/use-user-stats'
 
 const DashboardPage = () => {
   const { user } = useUser()
 
   const { data, isLoading, error } = useCommunites();
+  const { data: stats, isLoading: isStatsLoading } = useUserStats();
 
-  const pendingMatches = 1
+  const pendingMatches = stats?.pendingMatches || 0
+  const activeMatches = stats?.activeMatches || 0
+  const learningGoals = stats?.learningGoals || 0
 
-  if (isLoading) {
+  if (isLoading || isStatsLoading) {
     return (
-      <div className="page-wrapper">
-        <div className="animate-pulse space-y-4">
+      <div className="page-wrapper space-y-8">
+        <div className="space-y-1 animate-pulse">
           <div className="h-8 w-48 bg-muted rounded" />
           <div className="h-4 w-72 bg-muted rounded" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="h-32 bg-muted rounded-xl animate-pulse" />
+          <div className="h-32 bg-muted rounded-xl animate-pulse" />
+          <div className="h-32 bg-muted rounded-xl animate-pulse" />
         </div>
       </div>
     )
@@ -70,8 +79,8 @@ const DashboardPage = () => {
 
       {/* Stats */}
       <div className="grid gap-6 md:grid-cols-3">
-        <StatsCard title="Learning Goals" value={5} />
-        <StatsCard title="Active Matches" value={9} />
+        <StatsCard title="Learning Goals" value={learningGoals} />
+        <StatsCard title="Active Matches" value={activeMatches} />
         <StatsCard title="Pending Matches" value={pendingMatches} />
       </div>
 
@@ -138,7 +147,7 @@ const DashboardPage = () => {
             {data?.map((item: any) => (
               <Link
                 key={item.community.id}
-                href={`/communities/${item.community.id}`}
+                href={`/communities?communityId=${item.community.id}`}
               >
                 <Card className="shadow-none hover:bg-muted transition cursor-pointer">
                   <CardHeader>
