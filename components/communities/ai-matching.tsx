@@ -8,14 +8,34 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import { useAIPartners } from "@/hooks/use-ai-partner"
 import type { CommunityGoal } from "@/hooks/use-community"
 import { Sparkles, Target, Users, Zap, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface AiMatchingProps {
     goals: CommunityGoal[]
+    selectedCommunity: string
 }
 
-export const AiMatching = ({ goals }: AiMatchingProps) => {
+export const AiMatching = ({ goals, selectedCommunity }: AiMatchingProps) => {
+
+    const aiPartnerMutation = useAIPartners();
+
+    const handleFindAIPartners = async () => {
+        try {
+            await aiPartnerMutation.mutateAsync({
+                communityId: selectedCommunity
+            })
+            toast.success("AI partners found successfully")
+        } catch (error) {
+            console.log(error)
+            toast.error("Failed to find AI partners")
+        }
+    }
+
+
+
     return (
         <div className="grid gap-8 lg:grid-cols-3">
             {/* Main matching card */}
@@ -53,7 +73,8 @@ export const AiMatching = ({ goals }: AiMatchingProps) => {
 
                     {/* Action Area */}
                     <div className="space-y-4 pt-2">
-                        <Button className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-primary/30" size="lg">
+                        <Button className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-primary/30" size="lg" onClick={handleFindAIPartners}>
+
                             <Zap className="size-5 mr-2 fill-current" />
                             Run AI Matchmaker
                         </Button>
@@ -99,6 +120,6 @@ export const AiMatching = ({ goals }: AiMatchingProps) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

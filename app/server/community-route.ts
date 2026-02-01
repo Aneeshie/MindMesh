@@ -7,7 +7,8 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 
 type Variables = {
-  userId: string
+  userId: string,
+  user: NonNullable<Awaited<ReturnType<typeof getOrCreateUserByClerkId>>>
 }
 
 import { zValidator } from "@hono/zod-validator"
@@ -52,7 +53,7 @@ const communitesApp = new Hono<{ Variables: Variables }>()
     }
   )
   .post("/:communityId/join", async (c) => {
-    const clerkId = c.get('userId')
+    const user = c.get('user')
 
     const communityId = c.req.param("communityId");
 
@@ -67,7 +68,7 @@ const communitesApp = new Hono<{ Variables: Variables }>()
 
 
     await db.insert(communityMembers).values({
-      userId: clerkId,
+      userId: user.id,
       communityId: communityId
     })
 
@@ -75,13 +76,7 @@ const communitesApp = new Hono<{ Variables: Variables }>()
 
   })
   .get('/', async (c) => {
-    const clerkId = c.get('userId');
-
-    const user = await getOrCreateUserByClerkId(clerkId)
-
-    if (!user) {
-      return c.json([])
-    }
+    const user = c.get("user");
 
     const userCommunities = await db.select({
       id: communityMembers.id,
@@ -89,21 +84,15 @@ const communitesApp = new Hono<{ Variables: Variables }>()
       communityId: communityMembers.communityId,
       joinedAt: communityMembers.joinedAt,
       community: communities
-    }).from(communityMembers).innerJoin(communities, eq(communityMembers.communityId, communities.id)).where(eq(communityMembers.userId, clerkId))
+    }).from(communityMembers).innerJoin(communities, eq(communityMembers.communityId, communities.id)).where(eq(communityMembers.userId, user.id))
 
     return c.json(userCommunities)
   })
   .get("/:communityId/goals", async (c) => {
 
-    const clerkId = c.get("userId");
+    const user = c.get("user");
 
     const communityId = c.req.param("communityId")
-
-    const user = await getOrCreateUserByClerkId(clerkId);
-
-    if (!user) {
-      throw new HTTPException(404, { message: "User not found" })
-    }
 
     const goals = await db
       .select()
@@ -129,14 +118,9 @@ const communitesApp = new Hono<{ Variables: Variables }>()
       })
     ),
     async (c) => {
-      const clerkId = c.get("userId")
+      const user = c.get("user")
       const communityId = c.req.param("communityId")
       const { title, description } = c.req.valid("json")
-
-      const user = await getOrCreateUserByClerkId(clerkId)
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" })
-      }
 
       const [newGoal] = await db
         .insert(learningGoals)
@@ -160,14 +144,9 @@ const communitesApp = new Hono<{ Variables: Variables }>()
       })
     ),
     async (c) => {
-      const clerkId = c.get("userId")
+      const user = c.get("user")
       const goalId = c.req.param("goalId")
       const { isCompleted } = c.req.valid("json")
-
-      const user = await getOrCreateUserByClerkId(clerkId)
-      if (!user) {
-        throw new HTTPException(404, { message: "User not found" })
-      }
 
       const [updatedGoal] = await db
         .update(learningGoals)

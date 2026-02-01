@@ -237,7 +237,7 @@ const CommunitiesPage = () => {
               </TabsContent>
 
               <TabsContent value="find-study-mate">
-                <AiMatching goals={goals} />
+                <AiMatching goals={goals} selectedCommunity={selectedCommunity} />
               </TabsContent>
             </Tabs>
           </div>

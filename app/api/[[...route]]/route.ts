@@ -5,10 +5,12 @@ import { HTTPException } from "hono/http-exception";
 import { handle } from "hono/vercel";
 import { communitesApp } from "@/app/server/community-route";
 import { getOrCreateUserByClerkId } from "@/lib/user-utils";
+import { matchesApp } from "@/app/server/matches-route";
+import { authMiddleware } from "@/app/server/middleware/auth-middleware";
 
 type Variables = {
-
   userId: string;
+  user: NonNullable<Awaited<ReturnType<typeof getOrCreateUserByClerkId>>>
 }
 
 const app = new Hono<{ Variables: Variables }>().basePath("/api");
@@ -53,17 +55,13 @@ app.use("/*", async (c, next) => {
     })
   }
 
-  // Convert Clerk user id -> internal DB user uuid
-  const dbUser = await getOrCreateUserByClerkId(userId);
-  if (!dbUser) {
-    throw new HTTPException(401, { message: "Unauthorized" });
-  }
-
-  c.set("userId", dbUser.id);
-  return await next();
+  c.set("userId", userId);
+  return await authMiddleware(c as any, next);
 })
 
 const routes = app.route("/communities", communitesApp)
+  .route("/matches", matchesApp)
+
 
 export type AppType = typeof routes
 
