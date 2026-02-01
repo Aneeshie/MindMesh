@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -8,6 +8,17 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   imageUrl: text("image_url"),
   subscriptionTier: text("subscription_tier").default("free").notNull(), // free, pro
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const aiMatchUsage = pgTable("ai_match_usage", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull()
+    .unique(),
+  tries: integer("tries").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -58,8 +69,7 @@ export const matches = pgTable("matches", {
     .references(() => users.id)
     .notNull(),
   communityId: uuid("community_id")
-    .references(() => communities.id)
-    .notNull(),
+    .references(() => communities.id),
   status: text("status").default("pending").notNull(), // pending, accepted, declined
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

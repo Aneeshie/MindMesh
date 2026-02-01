@@ -73,11 +73,11 @@ export const getGoalsByUsersAndCommunity = async (userIds: string[], communityId
     return goalsMap
 }
 
-export const createMatch = async (user1Id: string, user2Id: string, communityId: string) => {
+export const createMatch = async (user1Id: string, user2Id: string, communityId?: string) => {
     const match = db.insert(matches).values({
         user1Id,
         user2Id,
-        communityId,
+        communityId: communityId || undefined,
         status: "pending"
     }).returning()
 
@@ -92,7 +92,7 @@ export const getPendingMatchesForUser = async (userId: string) => {
             partner: users,
         })
         .from(matches)
-        .innerJoin(communities, eq(matches.communityId, communities.id))
+        .leftJoin(communities, eq(matches.communityId, communities.id))
         .innerJoin(users, sql`
             CASE 
                 WHEN ${matches.user1Id} = ${userId} THEN ${users.id} = ${matches.user2Id}
@@ -108,15 +108,20 @@ export const getPendingMatchesForUser = async (userId: string) => {
 
     const matchesWithGoals = await Promise.all(
         pendingMatches.map(async (m) => {
-            const partnerGoals = await db
-                .select()
-                .from(learningGoals)
-                .where(
-                    and(
-                        eq(learningGoals.userId, m.partner.id),
-                        eq(learningGoals.communityId, m.community.id)
-                    )
-                );
+            let partnerGoals: (typeof learningGoals.$inferSelect)[] = [];
+
+            if (m.community) {
+                partnerGoals = await db
+                    .select()
+                    .from(learningGoals)
+                    .where(
+                        and(
+                            eq(learningGoals.userId, m.partner.id),
+                            eq(learningGoals.communityId, m.community.id)
+                        )
+                    );
+            }
+
             return {
                 ...m,
                 partnerGoals,
@@ -136,7 +141,7 @@ export const getActiveMatchesForUser = async (userId: string) => {
             partner: users,
         })
         .from(matches)
-        .innerJoin(communities, eq(matches.communityId, communities.id))
+        .leftJoin(communities, eq(matches.communityId, communities.id))
         .innerJoin(users, sql`
             CASE 
                 WHEN ${matches.user1Id} = ${userId} THEN ${users.id} = ${matches.user2Id}
@@ -152,25 +157,30 @@ export const getActiveMatchesForUser = async (userId: string) => {
 
     const matchesWithGoals = await Promise.all(
         activeMatches.map(async (m) => {
-            const partnerGoals = await db
-                .select()
-                .from(learningGoals)
-                .where(
-                    and(
-                        eq(learningGoals.userId, m.partner.id),
-                        eq(learningGoals.communityId, m.community.id)
-                    )
-                );
+            let partnerGoals: (typeof learningGoals.$inferSelect)[] = [];
+            let myGoals: (typeof learningGoals.$inferSelect)[] = [];
 
-            const myGoals = await db
-                .select()
-                .from(learningGoals)
-                .where(
-                    and(
-                        eq(learningGoals.userId, userId),
-                        eq(learningGoals.communityId, m.community.id)
-                    )
-                );
+            if (m.community) {
+                partnerGoals = await db
+                    .select()
+                    .from(learningGoals)
+                    .where(
+                        and(
+                            eq(learningGoals.userId, m.partner.id),
+                            eq(learningGoals.communityId, m.community.id)
+                        )
+                    );
+
+                myGoals = await db
+                    .select()
+                    .from(learningGoals)
+                    .where(
+                        and(
+                            eq(learningGoals.userId, userId),
+                            eq(learningGoals.communityId, m.community.id)
+                        )
+                    );
+            }
 
             return {
                 ...m,
@@ -209,7 +219,8 @@ export const getMatchById = async (matchId: string, userId: string) => {
             partner: users,
         })
         .from(matches)
-        .innerJoin(communities, eq(matches.communityId, communities.id))
+
+        .leftJoin(communities, eq(matches.communityId, communities.id))
         .innerJoin(users, sql`
             CASE 
                 WHEN ${matches.user1Id} = ${userId} THEN ${users.id} = ${matches.user2Id}
@@ -326,4 +337,41 @@ export const searchUsers = async (query: string, currentUserId: string) => {
         .limit(10);
 
     return results;
+}
+
+export const getUserStats = async (userId: string) => {
+    // 1. Count Pending Matches
+    const [pendingCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(matches)
+        .where(
+            and(
+                sql`${matches.user1Id} = ${userId} OR ${matches.user2Id} = ${userId}`,
+                eq(matches.status, "pending")
+            )
+        );
+
+    // 2. Count Active Matches
+    const [activeCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(matches)
+        .where(
+            and(
+                sql`${matches.user1Id} = ${userId} OR ${matches.user2Id} = ${userId}`,
+                eq(matches.status, "active")
+            )
+        );
+
+    // 3. Count Learning Goals
+    const [goalsCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(learningGoals)
+        .where(eq(learningGoals.userId, userId));
+
+
+    return {
+        pendingMatches: Number(pendingCount.count),
+        activeMatches: Number(activeCount.count),
+        learningGoals: Number(goalsCount.count)
+    }
 }
