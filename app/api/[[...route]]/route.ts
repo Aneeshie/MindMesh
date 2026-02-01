@@ -7,6 +7,7 @@ import { communitesApp } from "@/app/server/community-route";
 import { getOrCreateUserByClerkId } from "@/lib/user-utils";
 import { matchesApp } from "@/app/server/matches-route";
 import { authMiddleware } from "@/app/server/middleware/auth-middleware";
+import { userApp } from "@/app/server/user-route";
 
 type Variables = {
   userId: string;
@@ -61,6 +62,7 @@ app.use("/*", async (c, next) => {
 
 const routes = app.route("/communities", communitesApp)
   .route("/matches", matchesApp)
+  .route("/user", userApp)
 
 
 export type AppType = typeof routes
