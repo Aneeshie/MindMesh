@@ -88,6 +88,39 @@ const communitesApp = new Hono<{ Variables: Variables }>()
 
     return c.json(userCommunities)
   })
+  .post(
+    "/",
+    zValidator(
+      "json",
+      z.object({
+        name: z.string().min(1).max(50),
+        description: z.string().optional(),
+        imageUrl: z.string().url().optional(),
+      })
+    ),
+    async (c) => {
+      const user = c.get("user")
+      const { name, description, imageUrl } = c.req.valid("json")
+
+      const [newCommunity] = await db
+        .insert(communities)
+        .values({
+          name,
+          description,
+          imageUrl,
+          createdById: user.id
+        })
+        .returning()
+
+      // Auto-join the creator
+      await db.insert(communityMembers).values({
+        userId: user.id,
+        communityId: newCommunity.id
+      })
+
+      return c.json(newCommunity)
+    }
+  )
   .get("/:communityId/goals", async (c) => {
 
     const user = c.get("user");
