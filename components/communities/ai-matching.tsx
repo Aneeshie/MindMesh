@@ -9,8 +9,10 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { useAIPartners } from "@/hooks/use-ai-partner"
+import { useAiMatchStatus } from "@/hooks/use-ai-match-status"
 import type { CommunityGoal } from "@/hooks/use-community"
-import { Sparkles, Target, Users, Zap, CheckCircle2 } from "lucide-react"
+import Link from "next/link"
+import { Lock, Sparkles, Target, Users, Zap, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface AiMatchingProps {
@@ -21,16 +23,29 @@ interface AiMatchingProps {
 export const AiMatching = ({ goals, selectedCommunity }: AiMatchingProps) => {
 
     const aiPartnerMutation = useAIPartners();
+    const { data: status, isLoading: isLoadingStatus } = useAiMatchStatus()
+
+    const isLocked = !!status && !status.isPro && (status.remaining ?? 0) <= 0
 
     const handleFindAIPartners = async () => {
         try {
+            if (isLocked) {
+                toast.error("AI Matchmaker is locked for Free users after 2 tries. Upgrade to Pro to continue.")
+                return
+            }
+
+            if (!selectedCommunity) {
+                toast.error("Please select a community first")
+                return
+            }
+
             await aiPartnerMutation.mutateAsync({
                 communityId: selectedCommunity
             })
             toast.success("AI partners found successfully")
         } catch (error) {
-            console.log(error)
-            toast.error("Failed to find AI partners")
+            const message = error instanceof Error ? error.message : "Failed to find AI partners"
+            toast.error(message)
         }
     }
 
@@ -73,11 +88,44 @@ export const AiMatching = ({ goals, selectedCommunity }: AiMatchingProps) => {
 
                     {/* Action Area */}
                     <div className="space-y-4 pt-2">
-                        <Button className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-primary/30" size="lg" onClick={handleFindAIPartners}>
+                        <Button
+                            className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-primary/30"
+                            size="lg"
+                            onClick={handleFindAIPartners}
+                            disabled={aiPartnerMutation.isPending || isLoadingStatus || isLocked}
+                            variant={isLocked ? "secondary" : "default"}
+                        >
 
                             <Zap className="size-5 mr-2 fill-current" />
-                            Run AI Matchmaker
+                            {isLocked ? "AI Matchmaker Locked" : "Run AI Matchmaker"}
                         </Button>
+                        {isLoadingStatus ? (
+                            <p className="text-xs text-muted-foreground text-center">
+                                Checking your plan…
+                            </p>
+                        ) : status?.isPro ? (
+                            <p className="text-xs text-muted-foreground text-center">
+                                Pro plan detected — unlimited AI matchmaking.
+                            </p>
+                        ) : status ? (
+                            <div className="text-xs text-muted-foreground text-center space-y-1">
+                                <p>
+                                    Free plan: <span className="font-semibold">{status.remaining}</span> / {status.limit} tries remaining
+                                </p>
+                                {isLocked && (
+                                    <p className="flex items-center justify-center gap-2">
+                                        <Lock className="size-3" />
+                                        <Link className="underline underline-offset-4" href="/#pricing">
+                                            Upgrade to Pro
+                                        </Link>
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground text-center">
+                                Unable to check plan status.
+                            </p>
+                        )}
                         <p className="text-xs text-muted-foreground text-center">
                             By clicking run, you agree to share your learning profile with matches.
                         </p>

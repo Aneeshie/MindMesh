@@ -9,7 +9,7 @@ import { UserSearchDialog } from '@/components/user-search-dialog'
 
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { Loader2, MessageSquare, CheckCircle2, User, UserPlus } from 'lucide-react'
+import { ArrowLeft, Loader2, Send, Phone, Video, MoreVertical, Search, CheckCheck, Users, UserPlus, Target, MessageSquare } from "lucide-react"
 import { formatDistanceToNow } from 'date-fns'
 
 const ChatPage = () => {
@@ -51,7 +51,7 @@ const ChatPage = () => {
                     </div>
                 ) : pendingMatches?.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-muted/5 text-center">
-                        <User className="size-10 text-muted-foreground mb-3" />
+                        <UserPlus className="size-10 text-muted-foreground mb-3" />
                         <p className="font-medium">No pending matches</p>
                         <p className="text-sm text-muted-foreground">Find partners in your communities to start matching.</p>
                     </div>
@@ -68,7 +68,7 @@ const ChatPage = () => {
                                                 <AvatarFallback className="text-lg">{match.partner.name?.[0]}</AvatarFallback>
                                             </Avatar>
                                             <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] p-1 px-2 rounded-full border-2 border-background shadow-sm font-medium">
-                                                {match.community.name}
+                                                {match.community?.name || "DM"}
                                             </div>
                                         </div>
                                         <div className="space-y-1">
@@ -99,7 +99,7 @@ const ChatPage = () => {
                                             onClick={() => acceptMatch(match.match.id)}
                                             disabled={isAccepting}
                                         >
-                                            {isAccepting ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
+                                            {isAccepting ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCheck className="size-4 mr-2" />}
                                             Accept & Start Chatting
                                         </Button>
                                     </CardFooter>
@@ -143,10 +143,17 @@ const ChatPage = () => {
                                         </Avatar>
                                         <div className="space-y-1">
                                             <h3 className="font-semibold text-lg">{active.partner.name}</h3>
-                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                <span className="inline-block size-2 rounded-full bg-green-500"></span>
-                                                {active.community.name}
-                                            </p>
+                                            {active.community ? (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                                                    <Users className="size-4" />
+                                                    <span>Matched in <strong>{active.community.name}</strong></span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                                                    <UserPlus className="size-4" />
+                                                    <span>Direct Match</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

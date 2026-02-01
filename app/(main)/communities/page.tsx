@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AiMatching } from "@/components/communities/ai-matching"
 import { LearningGoalsTab } from "@/components/communities/learning-goals-tab"
+import { CreateCommunityDialog } from "@/components/create-community-dialog"
 import { useCommunites, useCommunityGoals } from "@/hooks/use-community"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -12,8 +13,13 @@ import { Plus, Hash, Users, BookOpen, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+import { useSearchParams } from "next/navigation"
+
 const CommunitiesPage = () => {
   const { data, isLoading, error } = useCommunites()
+  const searchParams = useSearchParams()
+  const initialCommunityId = searchParams.get("communityId")
+
   const [selectedCommunity, setSelectedCommunity] = useState<string | "">("")
 
   const {
@@ -23,10 +29,20 @@ const CommunitiesPage = () => {
   } = useCommunityGoals(selectedCommunity || "")
 
   useEffect(() => {
-    if (data?.length && !selectedCommunity) {
-      setSelectedCommunity(data[0].community.id)
+    if (data?.length) {
+      if (initialCommunityId) {
+        const exists = data.find(c => c.community.id === initialCommunityId)
+        if (exists) {
+          setSelectedCommunity(initialCommunityId)
+          return
+        }
+      }
+
+      if (!selectedCommunity) {
+        setSelectedCommunity(data[0].community.id)
+      }
     }
-  }, [data, selectedCommunity])
+  }, [data, initialCommunityId])
 
   if (isLoading) {
     return (
@@ -73,12 +89,15 @@ const CommunitiesPage = () => {
           </p>
         </div>
 
-        <Link href={"/communities/all"}>
-          <Button className="rounded-full px-6 shadow-sm hover:shadow-md transition-all">
-            <Plus className="size-4 mr-2" />
-            Explore
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <CreateCommunityDialog />
+          <Link href={"/communities/all"}>
+            <Button variant="outline" className="rounded-full px-6 shadow-sm hover:shadow-md transition-all">
+              <Plus className="size-4 mr-2" />
+              Explore
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {!hasCommunities ? (
