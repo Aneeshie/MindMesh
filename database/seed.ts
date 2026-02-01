@@ -12,6 +12,7 @@ import {
   messages,
   conversationSummaries,
 } from "./schema";
+import { InferSelectModel } from "drizzle-orm";
 
 // FREE USERS (1 community, 1 goal each - demonstrating limits)
 const freeUsers = [
@@ -537,7 +538,7 @@ async function comprehensiveSeed() {
     console.log("   ✓ Database cleared\n");
     // 1. Create FREE users
     console.log("👥 Creating FREE USERS (demonstrating tier limits)...");
-    const createdFreeUsers: any[] = [];
+    const createdFreeUsers: InferSelectModel<typeof users>[] = [];
     for (const user of freeUsers) {
       const [created] = await db.insert(users).values(user).returning();
       createdFreeUsers.push(created);
@@ -546,7 +547,7 @@ async function comprehensiveSeed() {
 
     // 2. Create PRO users
     console.log("\n👥 Creating PRO USERS (unlimited access)...");
-    const createdProUsers: any[] = [];
+    const createdProUsers: InferSelectModel<typeof users>[] = [];
     for (const user of proUsers) {
       const [created] = await db.insert(users).values(user).returning();
       createdProUsers.push(created);
@@ -557,7 +558,7 @@ async function comprehensiveSeed() {
 
     // 3. Create communities
     console.log("\n🏘️  Creating communities...");
-    const createdCommunities: any[] = [];
+    const createdCommunities: InferSelectModel<typeof communities>[] = [];
     for (const community of communitiesData) {
       const [created] = await db
         .insert(communities)
@@ -570,14 +571,12 @@ async function comprehensiveSeed() {
       console.log(`   ✓ ${community.name}`);
     }
 
-    // 4. Add FREE users to communities (1 community each)
-    console.log("\n🔗 Adding FREE USERS to communities (1 each)...");
+    // 4. Add users to communities
+    console.log("\n🤝 Adding users to communities...");
+    // FREE users (1 community each)
     for (const [userName, assignment] of Object.entries(freeUserAssignments)) {
-      const user = allUsers.find((u) => u.name === userName);
-      const community = createdCommunities.find(
-        (c) => c.name === assignment.community
-      );
-
+      const user = allUsers.find((u) => u.name === userName)!;
+      const community = createdCommunities.find((c) => c.name === assignment.community)!;
       await db.insert(communityMembers).values({
         userId: user.id,
         communityId: community.id,
@@ -585,16 +584,13 @@ async function comprehensiveSeed() {
       console.log(`   ✓ ${userName} → ${assignment.community}`);
     }
 
-    // 5. Add PRO users to communities (multiple each)
-    console.log("\n🔗 Adding PRO USERS to communities (multiple each)...");
-    for (const [userName, communityNames] of Object.entries(
-      proUserCommunityAssignments
-    )) {
-      const user = allUsers.find((u) => u.name === userName);
+    // PRO users (multiple communities each)
+    for (const [userName, communityNames] of Object.entries(proUserCommunityAssignments)) {
+      const user = allUsers.find((u) => u.name === userName)!;
       for (const communityName of communityNames) {
         const community = createdCommunities.find(
           (c) => c.name === communityName
-        );
+        )!;
         await db.insert(communityMembers).values({
           userId: user.id,
           communityId: community.id,
@@ -605,11 +601,11 @@ async function comprehensiveSeed() {
 
     // 6. Create template learning goals for each community
     console.log("\n📚 Creating template learning goals...");
-    const createdGoals: any[] = [];
+    const createdGoals: (InferSelectModel<typeof learningGoals> & { communityName: string })[] = [];
     for (const [communityName, goals] of Object.entries(learningGoalsData)) {
       const community = createdCommunities.find(
         (c) => c.name === communityName
-      );
+      )!;
       for (const goal of goals) {
         const [created] = await db
           .insert(learningGoals)
@@ -628,15 +624,15 @@ async function comprehensiveSeed() {
     // 7. Assign goals to FREE users (1 goal each)
     console.log("\n🎯 Assigning goals to FREE USERS (1 goal each)...");
     for (const [userName, assignment] of Object.entries(freeUserAssignments)) {
-      const user = allUsers.find((u) => u.name === userName);
+      const user = allUsers.find((u) => u.name === userName)!;
       const community = createdCommunities.find(
         (c) => c.name === assignment.community
-      );
+      )!;
       const templateGoal = createdGoals.find(
         (g) =>
           g.title === assignment.goal &&
           g.communityName === assignment.community
-      );
+      )!;
 
       await db.insert(learningGoals).values({
         userId: user.id,
@@ -653,18 +649,18 @@ async function comprehensiveSeed() {
     for (const [userName, communities] of Object.entries(
       proUserGoalAssignments
     )) {
-      const user = allUsers.find((u) => u.name === userName);
+      const user = allUsers.find((u) => u.name === userName)!;
       let totalGoals = 0;
 
       for (const [communityName, goalTitles] of Object.entries(communities)) {
         const community = createdCommunities.find(
           (c) => c.name === communityName
-        );
+        )!;
 
         for (const goalTitle of goalTitles) {
           const templateGoal = createdGoals.find(
             (g) => g.title === goalTitle && g.communityName === communityName
-          );
+          )!;
 
           if (templateGoal) {
             await db.insert(learningGoals).values({
@@ -712,7 +708,7 @@ async function comprehensiveSeed() {
       id: string;
       user1Id: string;
       user2Id: string;
-      communityId: string;
+      communityId: string | null;
       status: string;
       user1Name: string;
       user2Name: string;
@@ -722,7 +718,7 @@ async function comprehensiveSeed() {
       const user2 = allUsers.find((u) => u.name === name2);
       const community = createdCommunities.find(
         (c) => c.name === communityName
-      );
+      )!;
 
       if (user1 && user2 && community) {
         const status = Math.random() > 0.3 ? "accepted" : "pending";

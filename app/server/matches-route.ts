@@ -16,7 +16,6 @@ type Variables = {
 const getIsPro = async () => {
     const { has } = await auth()
 
-    // @ts-ignore
     return !!(has && has({ plan: "pro_plan" }))
 }
 

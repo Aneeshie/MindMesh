@@ -131,7 +131,6 @@ const ChatPage = () => {
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        {/* @ts-ignore */}
                         {activeMatches?.map((active) => (
                             <Card key={active.match.id} className="group hover:border-primary/50 transition-colors">
                                 <div className="flex flex-col md:flex-row md:items-center p-6 gap-6">

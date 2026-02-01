@@ -80,7 +80,7 @@ export function UserSearchDialog({ children }: { children: React.ReactNode }) {
             const res = await client.api.communities.$get()
             if (!res.ok) return []
             const data = await res.json()
-            // @ts-ignore
+            // @ts-expect-error - Response type mismatch potentially
             return data.data || data
         }
     })
@@ -131,11 +131,11 @@ export function UserSearchDialog({ children }: { children: React.ReactNode }) {
                             <p className="text-center text-sm text-muted-foreground py-8">Type to search...</p>
                         ) : (
                             <div className="space-y-4">
-                                {users?.map((user: any) => (
+                                {users?.map((user: { id: string, name: string, email: string, imageUrl: string | null }) => (
                                     <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarImage src={user.imageUrl} />
+                                                <AvatarImage src={user.imageUrl || undefined} />
                                                 <AvatarFallback>{user.name?.[0]}</AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col">

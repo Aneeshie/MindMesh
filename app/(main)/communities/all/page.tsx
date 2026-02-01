@@ -38,18 +38,18 @@ const AllCommunitiesPage = () => {
     }, [inView, hasNextPage, fetchNextPage])
 
     // Flatten pages into a single array
-    const allCommunities = allCommunitiesData?.pages.flatMap((page: any) => page.data) || []
+    const allCommunities = allCommunitiesData?.pages.flatMap((page: { data: any[] }) => page.data) || []
 
     // Determine joined status and sort
-    const communitiesWithStatus = allCommunities.map((community: any) => {
+    const communitiesWithStatus = allCommunities.map((community: { id: string, name: string, description: string }) => {
         const isJoined = userCommunities?.some(
             (uc) => uc.communityId === community.id
-        )
+        ) ?? false
         return { ...community, isJoined }
     })
 
     const sortedCommunities = communitiesWithStatus.sort(
-        (a: any, b: any) => {
+        (a: { isJoined: boolean }, b: { isJoined: boolean }) => {
             if (a.isJoined === b.isJoined) return 0
             return a.isJoined ? 1 : -1
         }
@@ -88,7 +88,7 @@ const AllCommunitiesPage = () => {
                 <div className="h-40 flex items-center justify-center text-muted-foreground">Loading communities...</div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {sortedCommunities.map((community: any) => (
+                    {sortedCommunities.map((community: { id: string, name: string, description: string, isJoined: boolean }) => (
                         <Card key={community.id} className="flex flex-col">
                             <CardHeader className="flex-1">
                                 <CardTitle>{community.name}</CardTitle>
@@ -125,7 +125,7 @@ const AllCommunitiesPage = () => {
                 <p className="text-center text-sm text-muted-foreground">No more communities</p>
             )}
             {sortedCommunities.length === 0 && !isFetchingNextPage && (
-                <p className="text-center text-muted-foreground">No communities found matching "{debouncedSearch}"</p>
+                <p className="text-center text-muted-foreground">No communities found matching &quot;{debouncedSearch}&quot;</p>
             )}
         </div>
     )

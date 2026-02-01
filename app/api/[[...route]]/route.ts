@@ -57,6 +57,7 @@ app.use("/*", async (c, next) => {
   }
 
   c.set("userId", userId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return await authMiddleware(c as any, next);
 })
 

@@ -7,7 +7,7 @@ import { AiMatching } from "@/components/communities/ai-matching"
 import { LearningGoalsTab } from "@/components/communities/learning-goals-tab"
 import { CreateCommunityDialog } from "@/components/create-community-dialog"
 import { useCommunites, useCommunityGoals } from "@/hooks/use-community"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { Plus, Hash, Users, BookOpen, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -15,7 +15,7 @@ import { toast } from "sonner"
 
 import { useSearchParams } from "next/navigation"
 
-const CommunitiesPage = () => {
+const CommunitiesPageContent = () => {
   const { data, isLoading, error } = useCommunites()
   const searchParams = useSearchParams()
   const initialCommunityId = searchParams.get("communityId")
@@ -264,6 +264,18 @@ const CommunitiesPage = () => {
       )
       }
     </div >
+  )
+}
+
+const CommunitiesPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="page-wrapper h-[80vh] flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    }>
+      <CommunitiesPageContent />
+    </Suspense>
   )
 }
 

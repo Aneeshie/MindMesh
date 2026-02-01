@@ -140,10 +140,11 @@ const DashboardPage = () => {
 
             {data?.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                You haven’t joined any communities yet.
+                You haven&apos;t joined any communities yet.
               </p>
             )}
 
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {data?.map((item: any) => (
               <Link
                 key={item.community.id}

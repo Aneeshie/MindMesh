@@ -19,7 +19,7 @@ export const useAIPartners = () => {
                         communityId
                     }
                 }))
-            const data = await res.json().catch(() => null as any);
+            const data = await res.json().catch(() => null) as { error?: string } | null;
             if (!res.ok) {
                 throw new Error(data?.error ?? "Failed to match users")
             }
@@ -34,7 +34,7 @@ export const useAIPartners = () => {
                 queryKey: AI_MATCH_STATUS_QUERY_KEY,
             })
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
             console.error("Error finding ai partner aiPartner", error)
         }
 
