@@ -1,5 +1,6 @@
 import { client } from "@/lib/client-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { AI_MATCH_STATUS_QUERY_KEY } from "./use-ai-match-status";
 
 
 export const useAIPartners = () => {
@@ -18,15 +19,19 @@ export const useAIPartners = () => {
                         communityId
                     }
                 }))
+            const data = await res.json().catch(() => null as any);
             if (!res.ok) {
-                throw new Error("Failed to match users")
+                throw new Error(data?.error ?? "Failed to match users")
             }
 
-            return res.json();
+            return data;
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
                 queryKey: ["potentialPartners", variables],
+            })
+            queryClient.invalidateQueries({
+                queryKey: AI_MATCH_STATUS_QUERY_KEY,
             })
         },
         onError: (error) => {
